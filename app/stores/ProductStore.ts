@@ -1,8 +1,6 @@
 import {makeAutoObservable} from 'mobx';
 import {Filter, Product} from '../types';
 import {filterData, products as mockProducts} from '../data/mockData';
-import {makePersistable} from 'mobx-persist-store';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface CartItem extends Product {
   quantity: number;
@@ -22,21 +20,9 @@ class ProductStore {
     category: string;
   } = {category: '', id: '', image: '', name: '', price: 0};
   search: string = '';
-  remainingTime: number = 0;
-  lastUpdateTime: number = Date.now();
-  result: any = null;
 
   constructor() {
     makeAutoObservable(this);
-
-    makePersistable(this, {
-      name: 'ProductStore',
-      properties: ['remainingTime', 'result', 'lastUpdateTime'],
-      // properties: [],
-      storage: AsyncStorage,
-    }).then(() => {
-      this.updateRemainingTime();
-    });
   }
 
   loadProducts = () => {
@@ -50,10 +36,6 @@ class ProductStore {
   setFilter = (filter: Filter) => {
     this.activeFilter = filter;
     this.applyFilter();
-  };
-
-  setResult = (result: any) => {
-    this.result = result;
   };
 
   setSelectedItem = (item: Product) => {
@@ -96,11 +78,6 @@ class ProductStore {
     }
   };
 
-  setRemainingTime = (time: number) => {
-    this.remainingTime = time;
-    this.lastUpdateTime = Date.now();
-  };
-
   removeFromCart = (productId: string) => {
     this.cart = this.cart.filter(item => item.id !== productId);
   };
@@ -121,24 +98,6 @@ class ProductStore {
   get totalItems() {
     return this.cart.reduce((sum, item) => sum + item.quantity, 0);
   }
-
-  get cartDiscountAmount() {
-    return this.cart.reduce((sum, item) => {
-      const oldPrice = item.oldPrice || item.price;
-      const discount = (oldPrice - item.price) * item.quantity;
-      return sum + discount;
-    }, 0);
-  }
-
-  updateRemainingTime = () => {
-    const currentTime = Date.now();
-    const timePassed = Math.floor((currentTime - this.lastUpdateTime) / 1000);
-
-    if (this.remainingTime > 0) {
-      this.remainingTime = Math.max(0, this.remainingTime - timePassed);
-      this.lastUpdateTime = currentTime;
-    }
-  };
 }
 
 export default ProductStore;
